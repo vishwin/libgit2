@@ -79,6 +79,7 @@ if [ -z "$SKIP_GITDAEMON_TESTS" ]; then
 	echo "Starting git daemon..."
 	GITDAEMON_DIR=`mktemp -d ${TMPDIR}/gitdaemon.XXXXXXXX`
 	git init --bare "${GITDAEMON_DIR}/test.git"
+	git init --bare "${GITDAEMON_DIR}/test with spaces.git"
 	git daemon --listen=localhost --export-all --enable=receive-pack --base-path="${GITDAEMON_DIR}" "${GITDAEMON_DIR}" 2>/dev/null &
 	GITDAEMON_PID=$!
 	disown $GITDAEMON_PID
@@ -103,6 +104,7 @@ if [ -z "$SKIP_NTLM_TESTS" ]; then
 	echo "Starting HTTP server..."
 	NTLM_DIR=`mktemp -d ${TMPDIR}/ntlm.XXXXXXXX`
 	git init --bare "${NTLM_DIR}/test.git"
+	git init --bare "${NTLM_DIR}/test with spaces.git"
 	java -jar poxygit.jar --address 127.0.0.1 --port 9000 --credentials foo:baz --quiet "${NTLM_DIR}" &
 fi
 
@@ -111,6 +113,7 @@ if [ -z "$SKIP_SSH_TESTS" ]; then
 	HOME=`mktemp -d ${TMPDIR}/home.XXXXXXXX`
 	SSHD_DIR=`mktemp -d ${TMPDIR}/sshd.XXXXXXXX`
 	git init --bare "${SSHD_DIR}/test.git"
+	git init --bare "${SSHD_DIR}/test with spaces.git"
 	cat >"${SSHD_DIR}/sshd_config" <<-EOF
 	Port 2222
 	ListenAddress 0.0.0.0
@@ -195,6 +198,8 @@ if [ -z "$SKIP_GITDAEMON_TESTS" ]; then
 
 	export GITTEST_REMOTE_URL="git://localhost/test.git"
 	run_test gitdaemon
+	export GITTEST_REMOTE_URL="git://localhost/test%20with%20spaces.git"
+	run_test gitdaemon
 	unset GITTEST_REMOTE_URL
 fi
 
@@ -227,27 +232,29 @@ if [ -z "$SKIP_PROXY_TESTS" ]; then
 fi
 
 if [ -z "$SKIP_NTLM_TESTS" ]; then
+	export GITTEST_REMOTE_USER="foo"
+	export GITTEST_REMOTE_PASS="baz"
+
 	echo ""
 	echo "Running NTLM tests (IIS emulation)"
 	echo ""
 
 	export GITTEST_REMOTE_URL="http://localhost:9000/ntlm/test.git"
-	export GITTEST_REMOTE_USER="foo"
-	export GITTEST_REMOTE_PASS="baz"
+	run_test auth_clone_and_push
+	export GITTEST_REMOTE_URL="http://localhost:9000/ntlm/test%20with%20spaces.git"
 	run_test auth_clone_and_push
 	unset GITTEST_REMOTE_URL
-	unset GITTEST_REMOTE_USER
-	unset GITTEST_REMOTE_PASS
 
 	echo ""
 	echo "Running NTLM tests (Apache emulation)"
 	echo ""
 
 	export GITTEST_REMOTE_URL="http://localhost:9000/broken-ntlm/test.git"
-	export GITTEST_REMOTE_USER="foo"
-	export GITTEST_REMOTE_PASS="baz"
+	run_test auth_clone_and_push
+	export GITTEST_REMOTE_URL="http://localhost:9000/broken-ntlm/test%20with%20spaces.git"
 	run_test auth_clone_and_push
 	unset GITTEST_REMOTE_URL
+
 	unset GITTEST_REMOTE_USER
 	unset GITTEST_REMOTE_PASS
 fi
@@ -290,14 +297,18 @@ if [ -z "$SKIP_SSH_TESTS" ]; then
 	echo "Running ssh tests"
 	echo ""
 
-	export GITTEST_REMOTE_URL="ssh://localhost:2222/$SSHD_DIR/test.git"
 	export GITTEST_REMOTE_USER=$USER
 	export GITTEST_REMOTE_SSH_KEY="${HOME}/.ssh/id_rsa"
 	export GITTEST_REMOTE_SSH_PUBKEY="${HOME}/.ssh/id_rsa.pub"
 	export GITTEST_REMOTE_SSH_PASSPHRASE=""
 	export GITTEST_REMOTE_SSH_FINGERPRINT="${SSH_FINGERPRINT}"
+
+	export GITTEST_REMOTE_URL="ssh://localhost:2222/$SSHD_DIR/test.git"
+	run_test ssh
+	export GITTEST_REMOTE_URL="ssh://localhost:2222/$SSHD_DIR/test%20with%20spaces.git"
 	run_test ssh
 	unset GITTEST_REMOTE_URL
+
 	unset GITTEST_REMOTE_USER
 	unset GITTEST_REMOTE_SSH_KEY
 	unset GITTEST_REMOTE_SSH_PUBKEY
